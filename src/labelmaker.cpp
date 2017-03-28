@@ -29,11 +29,11 @@ void LabelMaker::readKey()
     {
         img_index = index;
     }
-    if(imagedir.size())
+    if(imagedir.size() > 0)
     {
         d_ui->lineImageDir->setText(imagedir);
     }
-    if(savedir.size())
+    if(savedir.size() > 0)
     {
         d_ui->lineSaveTo->setText(savedir);
     }
@@ -88,7 +88,7 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
     }
     if(b == Qt::RightButton)
     {
-        if(bboxes.size())
+        if(bboxes.size() > 0)
         {
             bboxes.pop_back();
         }
@@ -99,9 +99,13 @@ void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
 {
     if(b == Qt::LeftButton)
     {
-    appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
-    c_rect.flag = 0;
-    updateView();
+		if(img_list.size() != 0)
+		{
+			appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
+		}
+		c_rect.flag = 0;
+		updateView();
+
     }
     else if(b == Qt::RightButton)
     {
@@ -147,9 +151,11 @@ void LabelMaker::destroyDirDialog()
 {
     img_list.clear();
     img_list = makeImageList(d_ui->lineImageDir->text());
-
-    loadImage();
-    updateView();
+	if(img_list.size() != 0)
+	{
+		loadImage();
+		updateView();
+	}
 }
 
 void LabelMaker::onPushPlus()
@@ -267,7 +273,7 @@ int LabelMaker::drawBbox()
 
 void LabelMaker::loadImage()
 {
-    currentimg = cv::imread(img_list[img_index].filePath().toStdString());
+	currentimg = cv::imread(img_list[img_index].filePath().toStdString());
 }
 
 void LabelMaker::correctCoordiante(int &x, int &y)
@@ -299,7 +305,7 @@ QFileInfoList LabelMaker::makeImageList(QString path)
 
 void LabelMaker::writeText()
 {
-    if(bboxes.size())
+    if(bboxes.size() > 0)
     {
         QString save_dir = d_ui->lineSaveTo->text();
         QDir dir(save_dir);
