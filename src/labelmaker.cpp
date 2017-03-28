@@ -1,6 +1,6 @@
 #include "labelmaker.h"
-#include "ui_labelmaker.h"
-#include "ui_dirdialog.h"
+#include <ui_labelmaker.h>
+#include <ui_dirdialog.h>
 using namespace std;
 
 LabelMaker::LabelMaker(QWidget *parent) :

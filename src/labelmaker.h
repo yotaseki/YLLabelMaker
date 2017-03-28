@@ -7,7 +7,7 @@
 #include <QGraphicsItem>
 #include <QSettings>
 #include "MyQclass.h"
-#include "ui_dirdialog.h"
+#include <ui_dirdialog.h>
 
 namespace Ui {
 class LabelMaker;
