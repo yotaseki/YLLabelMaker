@@ -6,7 +6,7 @@
 #include <QGraphicsObject>
 #include <QGraphicsItem>
 #include <QSettings>
-#include "MyQclass.h"
+#include <MyQclass.h>
 #include <ui_dirdialog.h>
 
 namespace Ui {
