@@ -1,0 +1,15 @@
+set(LABELMAKER_SRCS
+	src/MyQView.cpp
+	src/MyQclass.cpp
+	src/labelmaker.cpp
+	src/main.cpp
+	)
+set(LABELMAKER_MOC_HDRS
+	src/MyQclass.h
+	src/MyQView.h
+	src/labelmaker.h
+	)
+set(LABELMAKER_UIS
+	src/dirdialog.ui
+	src/labelmaker.ui
+	)
