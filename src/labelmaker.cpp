@@ -154,6 +154,7 @@ void LabelMaker::destroyDirDialog()
 	if(img_list.size() != 0)
 	{
 		loadImage();
+		readText();
 		updateView();
 	}
 }
@@ -329,6 +330,7 @@ void LabelMaker::writeText()
 
 void LabelMaker::readText()
 {
+	bboxes.clear();
     vector<string> lines;
     QString save_dir = d_ui->lineSaveTo->text();
     QDir dir(save_dir);
@@ -381,12 +383,17 @@ void LabelMaker::appendBbox(int label, int x1, int y1, int x2, int y2)
 
 void LabelMaker::changeIndex(int num)
 {
-    if( 0<img_index && img_index<img_list.size())
+	writeText();
+    img_index+=num;
+	if( img_index < 0)
     {
-        writeText();
-        img_index+=num;
-        readText();
-        loadImage();
-        updateView();
+		img_index = 0;
     }
+	if(img_list.size()-1 < img_index)
+	{
+		img_index = img_list.size()-1;
+	}
+	readText();
+    loadImage();
+    updateView();
 }
