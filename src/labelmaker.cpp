@@ -246,7 +246,7 @@ int LabelMaker::setImage(cv::Mat img)
 
 int LabelMaker::drawCursur()
 {
-    scene.addEllipse(c_view.x,c_view.y,2,2,QPen(QColor(Qt::red)));
+    scene.addEllipse(c_view.x,c_view.y,4,4,QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value())));
     return 0;
 }
 
