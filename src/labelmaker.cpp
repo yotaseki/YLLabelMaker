@@ -8,7 +8,7 @@ LabelMaker::LabelMaker(QWidget *parent) :
     ui(new Ui::LabelMaker),
     d_ui(new Ui::DirDialog),
     img_index(0),
-    viewoffset(80),
+    viewoffset(20),
     key(QDir::homePath()+"/.labelmaker.ini",QSettings::IniFormat)
 {
     ui->setupUi(this);
@@ -246,7 +246,17 @@ int LabelMaker::setImage(cv::Mat img)
 
 int LabelMaker::drawCursur()
 {
-    scene.addEllipse(c_view.x,c_view.y,4,4,QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value())));
+	int r = 4;
+    int offset = viewoffset*2;
+    int w = ui->graphicsView->width()-offset;
+    int h = ui->graphicsView->height()-offset;
+	QPen p = QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value()));
+    scene.addEllipse(c_view.x-(r/2),c_view.y-(r/2),r,r,p);
+	if(ui->checkCrossLine->checkState() == Qt::Checked)
+	{
+		scene.addLine(c_view.x   ,0          ,c_view.x   ,h          ,p);
+		scene.addLine(0          ,c_view.y   ,w          ,c_view.y   ,p);
+	}
     return 0;
 }
 

@@ -150,6 +150,19 @@
      </item>
     </layout>
    </item>
+   <item row="3" column="0">
+    <widget class="QCheckBox" name="checkCrossLine">
+     <property name="text">
+      <string>cursur with cross line</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="tristate">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
