@@ -17,6 +17,7 @@ LabelMaker::LabelMaker(QWidget *parent) :
     connectSignals();
     ui->graphicsView->setScene(&scene);
     readKey();
+	dialog.show();
 }
 
 void LabelMaker::readKey()
@@ -59,6 +60,7 @@ void LabelMaker::onMouseMovedGraphicsView(int x, int y, Qt::MouseButton b)
     int w = ui->graphicsView->width()-offset*2;
     int h = ui->graphicsView->height()-offset*2;
     float xf,yf;
+	ui->labelDebug->setText(QString("x:%1 y:%2").arg(x).arg(y));
     x = x-offset;
     y = y-offset;
     correctCoordiante(x,y);
@@ -240,6 +242,7 @@ int LabelMaker::setImage(cv::Mat img)
     cv::resize(img,img,cv::Size(w,h));
     pix = myq.MatBGR2pixmap(img);
     scene.addPixmap(pix);
+	scene.addEllipse(w+offset/2,h+offset/2,1,1,QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value())));
     return 0;
 }
 
@@ -253,8 +256,8 @@ int LabelMaker::drawCursur()
     scene.addEllipse(c_view.x-(r/2),c_view.y-(r/2),r,r,p);
 	if(ui->checkCrossLine->checkState() == Qt::Checked)
 	{
-		scene.addLine(c_view.x   ,0          ,c_view.x   ,h          ,p);
-		scene.addLine(0          ,c_view.y   ,w          ,c_view.y   ,p);
+		scene.addLine(c_view.x   ,1          ,c_view.x   ,h-1          ,p);
+		scene.addLine(1          ,c_view.y   ,w-1          ,c_view.y   ,p);
 	}
     return 0;
 }
