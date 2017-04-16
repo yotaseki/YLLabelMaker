@@ -17,7 +17,6 @@ LabelMaker::LabelMaker(QWidget *parent) :
     connectSignals();
     ui->graphicsView->setScene(&scene);
     readKey();
-    dialog.show();
 }
 
 void LabelMaker::readKey()
