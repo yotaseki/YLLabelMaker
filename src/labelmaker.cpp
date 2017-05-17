@@ -8,7 +8,7 @@ LabelMaker::LabelMaker(QWidget *parent) :
     ui(new Ui::LabelMaker),
     d_ui(new Ui::DirDialog),
     img_index(0),
-    viewoffset(20),
+    viewoffset(50),
     key(QDir::homePath()+"/.labelmaker.ini",QSettings::IniFormat)
 {
     ui->setupUi(this);
@@ -56,20 +56,10 @@ LabelMaker::~LabelMaker()
 
 void LabelMaker::onMouseMovedGraphicsView(int x, int y, Qt::MouseButton b)
 {
-    int offset = viewoffset;
-    int w = ui->graphicsView->width()-offset*2;
-    int h = ui->graphicsView->height()-offset*2;
-    float xf,yf;
-	ui->labelDebug->setText(QString("x:%1 y:%2").arg(x).arg(y));
-    x = x-offset;
-    y = y-offset;
     correctCoordiante(x,y);
     c_view.x = x;
     c_view.y = y;
     c_view.b = b;
-    xf = (float)x/w;
-    yf = (float)y/h;
-    //ui->labelMousePos->setText(QString("x: %1, y: %2").arg(xf).arg(yf));
     updateView();
 }
 
@@ -77,9 +67,6 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
 {
     if(b == Qt::LeftButton)
     {
-        int offset = viewoffset;
-        mx = mx-offset;
-        my = my-offset;
         correctCoordiante(mx,my);
         c_rect.x = mx;
         c_rect.y = my;
@@ -226,32 +213,37 @@ int LabelMaker::updateView()
                                .arg(img_index+1)
                                .arg(img_list.size())
                                );
+    ui->labelDebug->clear();
+	ui->labelDebug->setText(
+            QString("NUM_BBOX[%1]").arg(bboxes.size())
+            + QString(" x:%1 y:%2").arg(c_view.x).arg(c_view.y) 
+            + QString(" (size %1 x %2 )").arg(scene_img_w).arg(scene_img_h)
+            );
     return 0;
 }
 
 int LabelMaker::setImage(cv::Mat img)
 {
+    int offset = viewoffset;
+    scene_img_w = ui->graphicsView->width()-offset*2;
+    scene_img_h = ui->graphicsView->height()-offset*2;
     QPixmap pix;
-    int offset = viewoffset*2;
-    int w = ui->graphicsView->width()-offset;
-    int h = ui->graphicsView->height()-offset;
-    if(w<=0 || h<=0)
+    if(ui->graphicsView->width()<=0 || ui->graphicsView->height()<=0)
     {
         return -1;
     }
-    cv::resize(img,img,cv::Size(w,h));
+    cv::resize(img,img,cv::Size(scene_img_w,scene_img_h));
     pix = myq.MatBGR2pixmap(img);
-    scene.addPixmap(pix);
-	scene.addEllipse(w+offset/2,h+offset/2,1,1,QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value())));
+    QGraphicsPixmapItem *p = scene.addPixmap(pix);
+    p->setPos(offset,offset);
     return 0;
 }
 
 int LabelMaker::drawCursur()
 {
 	int r = 4;
-    int offset = viewoffset*2;
-    int w = ui->graphicsView->width()-offset;
-    int h = ui->graphicsView->height()-offset;
+    int w = scene_img_w;
+    int h = scene_img_h;
 	QPen p = QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value()));
     scene.addEllipse(c_view.x-(r/2),c_view.y-(r/2),r,r,p);
 	if(ui->checkCrossLine->checkState() == Qt::Checked)
@@ -270,9 +262,8 @@ int LabelMaker::drawRect()
 
 int LabelMaker::drawBbox()
 {
-    int offset = viewoffset;
-    int w = ui->graphicsView->width()-offset*2;
-    int h = ui->graphicsView->height()-offset*2;
+    int w = scene_img_w;
+    int h = scene_img_h;
     for(int i=0;i<bboxes.size();i++)
     {
         int x1 = w * (bboxes[i].x - (bboxes[i].w/2));
@@ -291,9 +282,8 @@ void LabelMaker::loadImage()
 
 void LabelMaker::correctCoordiante(int &x, int &y)
 {
-    int offset = viewoffset*2;
-    int w = ui->graphicsView->width()-offset;
-    int h = ui->graphicsView->height()-offset;
+    int w = scene_img_w;
+    int h = scene_img_h;
     x = (x > 0) ?x:0;
     y = (y > 0) ?y:0;
     x = (x < w-1) ?x:w-1;
@@ -373,9 +363,8 @@ void LabelMaker::readText()
 
 void LabelMaker::appendBbox(int label, int x1, int y1, int x2, int y2)
 {
-    int offset = viewoffset;
-    int width = ui->graphicsView->width()-offset*2;
-    int height = ui->graphicsView->height()-offset*2;
+    int width = scene_img_w;
+    int height = scene_img_h;
     Bbox bbox;
     int x = (x1+x2)/2;
     int y = (y1+y2)/2;

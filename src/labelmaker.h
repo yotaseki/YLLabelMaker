@@ -57,6 +57,8 @@ private slots:
 private:
     int img_index;
     int viewoffset;
+    int scene_img_w;
+    int scene_img_h;
     Ui::LabelMaker *ui;
     Ui::DirDialog *d_ui;
     QDialog dialog;
