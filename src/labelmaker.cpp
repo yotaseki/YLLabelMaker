@@ -192,6 +192,7 @@ void LabelMaker::connectSignals()
 int LabelMaker::updateView()
 {
     scene.clear();
+	scene.setSceneRect(0,0,ui->graphicsView->width(), ui->graphicsView->height());
     if(img_list.size() == 0)
     {
         return -1;
@@ -242,14 +243,15 @@ int LabelMaker::setImage(cv::Mat img)
 int LabelMaker::drawCursur()
 {
 	int r = 4;
+	int offset = viewoffset;
     int w = scene_img_w;
     int h = scene_img_h;
 	QPen p = QPen(myq.retColor(ui->spinLabelNumber->value())),QBrush(myq.retColor(ui->spinLabelNumber->value()));
     scene.addEllipse(c_view.x-(r/2),c_view.y-(r/2),r,r,p);
 	if(ui->checkCrossLine->checkState() == Qt::Checked)
 	{
-		scene.addLine(c_view.x   ,1          ,c_view.x   ,h-1          ,p);
-		scene.addLine(1          ,c_view.y   ,w-1          ,c_view.y   ,p);
+		scene.addLine(c_view.x   ,offset+1          ,c_view.x   ,h-1+offset   ,p);
+		scene.addLine(offset+1   ,c_view.y   ,w-1+offset ,c_view.y   ,p);
 	}
     return 0;
 }
@@ -262,6 +264,7 @@ int LabelMaker::drawRect()
 
 int LabelMaker::drawBbox()
 {
+	int offset=viewoffset;
     int w = scene_img_w;
     int h = scene_img_h;
     for(int i=0;i<bboxes.size();i++)
@@ -270,6 +273,10 @@ int LabelMaker::drawBbox()
         int y1 = h * (bboxes[i].y - (bboxes[i].h/2));
         int x2 = w * (bboxes[i].x + (bboxes[i].w/2));
         int y2 = h * (bboxes[i].y + (bboxes[i].h/2));
+		x1 += offset;
+		y1 += offset;
+		x2 += offset;
+		y2 += offset;
         scene.addRect(QRect(QPoint(x1,y1),QPoint(x2,y2)),QPen(QBrush(myq.retColor(bboxes[i].label)),3));
     }
     return 0;
@@ -282,12 +289,13 @@ void LabelMaker::loadImage()
 
 void LabelMaker::correctCoordiante(int &x, int &y)
 {
+	int offset = viewoffset;
     int w = scene_img_w;
     int h = scene_img_h;
-    x = (x > 0) ?x:0;
-    y = (y > 0) ?y:0;
-    x = (x < w-1) ?x:w-1;
-    y = (y < h-1) ?y:h-1;
+    x = (x > offset) ?x:offset;
+    y = (y > offset) ?y:offset;
+    x = (x < w+offset-1) ?x:w+offset-1;
+    y = (y < h+offset-1) ?y:h+offset-1;
 }
 
 QFileInfoList LabelMaker::makeImageList(QString path)
@@ -363,6 +371,11 @@ void LabelMaker::readText()
 
 void LabelMaker::appendBbox(int label, int x1, int y1, int x2, int y2)
 {
+	int offset = viewoffset;
+	x1 -= offset;
+	y1 -= offset;
+	x2 -= offset;
+	y2 -= offset;
     int width = scene_img_w;
     int height = scene_img_h;
     Bbox bbox;
