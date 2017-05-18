@@ -229,7 +229,7 @@ int LabelMaker::setImage(cv::Mat img)
     scene_img_w = ui->graphicsView->width()-offset*2;
     scene_img_h = ui->graphicsView->height()-offset*2;
     QPixmap pix;
-    if(ui->graphicsView->width()<=0 || ui->graphicsView->height()<=0)
+    if(scene_img_w<=0 || scene_img_h<=0)
     {
         return -1;
     }
