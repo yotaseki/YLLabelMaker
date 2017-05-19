@@ -17,7 +17,7 @@ LabelMaker::LabelMaker(QWidget *parent) :
     connectSignals();
     ui->graphicsView->setScene(&scene);
     readKey();
-	dialog.show();
+    dialog.show();
 }
 
 void LabelMaker::readKey()
@@ -56,6 +56,12 @@ LabelMaker::~LabelMaker()
 
 void LabelMaker::onMouseMovedGraphicsView(int x, int y, Qt::MouseButton b)
 {
+    int offset = viewoffset;
+    int w = ui->graphicsView->width()-offset*2;
+    int h = ui->graphicsView->height()-offset*2;
+    float xf,yf;
+    x = x-offset;
+    y = y-offset;
     correctCoordiante(x,y);
     c_view.x = x;
     c_view.y = y;
@@ -85,14 +91,28 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
 
 void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
 {
+    int offset = viewoffset;
+    mx = mx-offset;
+    my = my-offset;
+    int r_x1,r_y1,r_x2,r_y2;
     if(b == Qt::LeftButton)
     {
-		if(img_list.size() != 0)
-		{
-			appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
-		}
-		c_rect.flag = 0;
-		updateView();
+        if(img_list.size() != 0)
+        {
+            if(ui->checkUseMI->checkState() == Qt::Checked)
+            {
+                int converted_mx,converted_my;
+                convertAxsisGraphics2CurrentImage(mx, my, &converted_mx,&converted_my);
+                //std::cout << "(x , y)" << mx << "," << my << std::endl;
+                currentimg = cv::imread(img_list[img_index].filePath().toStdString());
+                //std::cout << "(cols , rows )" << currentimg.cols << "," << currentimg.rows << std::endl;
+                searchBboxByMI(converted_mx,converted_my, &r_x1, &r_y1, &r_x2, &r_y2);
+                appendBbox(0, r_x1, r_y1, r_x2, r_y2);
+            }
+            else appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
+        }
+        c_rect.flag = 0;
+        updateView();
 
     }
     else if(b == Qt::RightButton)
@@ -100,7 +120,111 @@ void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
         updateView();
     }
 }
+void LabelMaker::convertAxsisGraphics2CurrentImage(int mx, int my, int *out_mx, int *out_my )
+{
+    int offset = viewoffset*2;
+    int w = ui->graphicsView->width()-offset;
+    int h = ui->graphicsView->height()-offset;
+    *out_mx = (int)((double)mx / w * currentimg.cols);
+    *out_my = (int)((double)my / h * currentimg.rows);
+}
+void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *out_x2, int *out_y2)
+{
+    //std::cout << "(x , y)" << mx << "," << my << std::endl;
+    int offset = viewoffset*2;
+    QImage mask = CreateMask();
+    int max_r = 0;
+    double max_mi = 0;
+    QPoint maxp;
+    for(int r = 5; r < 100; r++)
+    {
+        double scale = r/100.;
+        QImage ballmask = mask.scaled(mask.width()*scale, mask.height()*scale);
+        int mw = ballmask.width();
+        int mh = ballmask.height();
+        //std::cout << "mw,mh = " << mw << "," << mh << std::endl;
+        currentimg = cv::imread(img_list[img_index].filePath().toStdString());
+        QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_ARGB32);
+        double mi = calc_mi(img, ballmask, mx-r, my-r);
+        std::cout << mi << std::endl;
+        if(max_mi < mi)
+        {
+            max_mi = mi;
+            max_r = r;
+            //In max mi x1,y1,x2,y2
+            //std::cout << "(x1 , y1)" << "(" << *out_x1 << "," << *out_y1 << ")" <<  "(x2 , y2)" << "(" << *out_x2 << "," << *out_y2 << ")" << std::endl;
+        }
+    }
+    *out_x1 = (int)((double)(mx)/currentimg.cols * ui->graphicsView->width()-offset);
+    *out_y1 = (int)((double)(my)/currentimg.rows * ui->graphicsView->height()-offset);
+    *out_x2 = (int)((double)(mx + max_r*2)/currentimg.cols * ui->graphicsView->width()-offset);
+    *out_y2 = (int)((double)(my + max_r*2)/currentimg.rows * ui->graphicsView->height()-offset);
+}
+double LabelMaker::calc_mi( const QImage &img, const QImage &maskimg, int x0, int y0 )
+{
+    int hist[256][2];
+    for(int i=0; i<256; i++) {
+        for(int j=0; j<2; j++) hist[i][j] = 0;
+    }
 
+    std::vector<int> pbg(256, 0); //BG
+    std::vector<int> pfg(256, 0); //FG
+    int cnt_fg = 0;
+    const unsigned char *imdata = img.bits();
+    int bpl = img.bytesPerLine();
+    const unsigned char *maskdata = maskimg.bits();
+    int maskbpl = maskimg.bytesPerLine();
+    int mh = maskimg.height();
+    int mw = maskimg.width();
+    for(int i=0; i<mh; i++) {
+        for(int j=0; j<mw; j++) { 
+            //int gray = qGray(img.pixel(j+x0, i+y0));
+            int gray = imdata[(j+x0) * 3 + (i+y0) * bpl];
+            int mask = maskdata[j*3 + i*maskbpl];
+            if (mask) {
+                ++pfg[gray];
+                ++cnt_fg;
+                ++hist[gray][0];
+            } else {
+                ++pbg[gray];
+                ++hist[gray][1];
+            }
+        }
+    }
+    int cnt = maskimg.width()*maskimg.height();
+    double p_fg = (double)cnt_fg / (double)cnt;
+    double jent = 0;
+    double jx = 0;
+    double jy = -p_fg * log(p_fg) - (1-p_fg) * log(1-p_fg);
+    //std::cout << "pfg: " << pfg << std::endl;
+    for(int i=0; i<pbg.size(); i++) {
+        double px = 0;
+        for(int j=0; j<2; j++) {
+            if (hist[i][j] > 0) {
+                double p = ((double)hist[i][j]/(double)cnt);
+                jent += -p * log(p);
+                px += p;
+            }
+        }
+        if (px > 0) {
+            jx += -px * log(px);
+        }
+    }
+    //std::cout << "jx, jy, jent" << jx << " " << jy << " " << jent << std::endl;
+    return jx + jy - jent;
+}
+
+QImage LabelMaker::CreateMask()
+{
+    QImage mask(250, 250, QImage::Format_RGB888);
+    mask.fill(Qt::black);
+    QPainter painter(&mask);
+    painter.setBrush(Qt::white);
+    painter.drawEllipse(QPoint(125,125), 100,100);
+    mask.save("balltemp.png", "PNG");
+
+    return mask;
+}
 void LabelMaker::resizeGraphicsView()
 {
     updateView();
@@ -139,12 +263,12 @@ void LabelMaker::destroyDirDialog()
 {
     img_list.clear();
     img_list = makeImageList(d_ui->lineImageDir->text());
-	if(img_list.size() != 0)
-	{
-		loadImage();
-		readText();
-		updateView();
-	}
+    if(img_list.size() != 0)
+    {
+        loadImage();
+        readText();
+        updateView();
+    }
 }
 
 void LabelMaker::onPushPlus()
@@ -229,7 +353,7 @@ int LabelMaker::setImage(cv::Mat img)
     scene_img_w = ui->graphicsView->width()-offset*2;
     scene_img_h = ui->graphicsView->height()-offset*2;
     QPixmap pix;
-    if(ui->graphicsView->width()<=0 || ui->graphicsView->height()<=0)
+    if(scene_img_w<=0 || scene_img_h<=0)
     {
         return -1;
     }
@@ -284,7 +408,7 @@ int LabelMaker::drawBbox()
 
 void LabelMaker::loadImage()
 {
-	currentimg = cv::imread(img_list[img_index].filePath().toStdString());
+    currentimg = cv::imread(img_list[img_index].filePath().toStdString());
 }
 
 void LabelMaker::correctCoordiante(int &x, int &y)
@@ -340,7 +464,7 @@ void LabelMaker::writeText()
 
 void LabelMaker::readText()
 {
-	bboxes.clear();
+    bboxes.clear();
     vector<string> lines;
     QString save_dir = d_ui->lineSaveTo->text();
     QDir dir(save_dir);
@@ -397,17 +521,17 @@ void LabelMaker::appendBbox(int label, int x1, int y1, int x2, int y2)
 
 void LabelMaker::changeIndex(int num)
 {
-	writeText();
+    writeText();
     img_index+=num;
-	if( img_index < 0)
+    if( img_index < 0)
     {
-		img_index = 0;
+        img_index = 0;
     }
-	if(img_list.size()-1 < img_index)
-	{
-		img_index = img_list.size()-1;
-	}
-	readText();
+    if(img_list.size()-1 < img_index)
+    {
+        img_index = img_list.size()-1;
+    }
+    readText();
     loadImage();
     updateView();
 }
