@@ -56,12 +56,6 @@ LabelMaker::~LabelMaker()
 
 void LabelMaker::onMouseMovedGraphicsView(int x, int y, Qt::MouseButton b)
 {
-    int offset = viewoffset;
-    int w = ui->graphicsView->width()-offset*2;
-    int h = ui->graphicsView->height()-offset*2;
-    float xf,yf;
-    x = x-offset;
-    y = y-offset;
     correctCoordiante(x,y);
     c_view.x = x;
     c_view.y = y;
@@ -91,9 +85,6 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
 
 void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
 {
-    int offset = viewoffset;
-    mx = mx-offset;
-    my = my-offset;
     int r_x1,r_y1,r_x2,r_y2;
     if(b == Qt::LeftButton)
     {
@@ -101,12 +92,9 @@ void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
         {
             if(ui->checkUseMI->checkState() == Qt::Checked)
             {
-                int converted_mx,converted_my;
-                convertAxsisGraphics2CurrentImage(mx, my, &converted_mx,&converted_my);
                 //std::cout << "(x , y)" << mx << "," << my << std::endl;
-                currentimg = cv::imread(img_list[img_index].filePath().toStdString());
                 //std::cout << "(cols , rows )" << currentimg.cols << "," << currentimg.rows << std::endl;
-                searchBboxByMI(converted_mx,converted_my, &r_x1, &r_y1, &r_x2, &r_y2);
+                searchBboxByMI(mx,my, &r_x1, &r_y1, &r_x2, &r_y2);
                 appendBbox(0, r_x1, r_y1, r_x2, r_y2);
             }
             else appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
@@ -122,21 +110,23 @@ void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
 }
 void LabelMaker::convertAxsisGraphics2CurrentImage(int mx, int my, int *out_mx, int *out_my )
 {
-    int offset = viewoffset*2;
-    int w = ui->graphicsView->width()-offset;
-    int h = ui->graphicsView->height()-offset;
+	int offset = viewoffset;
+	mx -= offset;
+	my -= offset;
+    int w = scene_img_w;
+    int h = scene_img_h;
     *out_mx = (int)((double)mx / w * currentimg.cols);
     *out_my = (int)((double)my / h * currentimg.rows);
 }
 void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *out_x2, int *out_y2)
 {
     //std::cout << "(x , y)" << mx << "," << my << std::endl;
-    int offset = viewoffset*2;
+	convertAxsisGraphics2CurrentImage(mx, my, &mx,&my);
     QImage mask = CreateMask();
     int max_r = 0;
     double max_mi = 0;
     QPoint maxp;
-    for(int r = 5; r < 100; r++)
+    for(int r = 10; r < 90; r++)
     {
         double scale = r/100.;
         QImage ballmask = mask.scaled(mask.width()*scale, mask.height()*scale);
@@ -146,7 +136,7 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
         currentimg = cv::imread(img_list[img_index].filePath().toStdString());
         QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_ARGB32);
         double mi = calc_mi(img, ballmask, mx-r, my-r);
-        std::cout << mi << std::endl;
+        //std::cout << mi << std::endl;
         if(max_mi < mi)
         {
             max_mi = mi;
@@ -155,10 +145,11 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
             //std::cout << "(x1 , y1)" << "(" << *out_x1 << "," << *out_y1 << ")" <<  "(x2 , y2)" << "(" << *out_x2 << "," << *out_y2 << ")" << std::endl;
         }
     }
-    *out_x1 = (int)((double)(mx)/currentimg.cols * ui->graphicsView->width()-offset);
-    *out_y1 = (int)((double)(my)/currentimg.rows * ui->graphicsView->height()-offset);
-    *out_x2 = (int)((double)(mx + max_r*2)/currentimg.cols * ui->graphicsView->width()-offset);
-    *out_y2 = (int)((double)(my + max_r*2)/currentimg.rows * ui->graphicsView->height()-offset);
+    int offset = viewoffset;
+    *out_x1 = (int)((double)(mx - max_r)/currentimg.cols * scene_img_w)+offset;
+    *out_y1 = (int)((double)(my - max_r)/currentimg.rows * scene_img_h)+offset;
+    *out_x2 = (int)((double)(mx + max_r)/currentimg.cols * scene_img_w)+offset;
+    *out_y2 = (int)((double)(my + max_r)/currentimg.rows * scene_img_h)+offset;
 }
 double LabelMaker::calc_mi( const QImage &img, const QImage &maskimg, int x0, int y0 )
 {
@@ -221,7 +212,7 @@ QImage LabelMaker::CreateMask()
     QPainter painter(&mask);
     painter.setBrush(Qt::white);
     painter.drawEllipse(QPoint(125,125), 100,100);
-    mask.save("balltemp.png", "PNG");
+    //mask.save("balltemp.png", "PNG");
 
     return mask;
 }
