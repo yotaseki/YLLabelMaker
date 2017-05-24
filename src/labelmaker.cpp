@@ -126,7 +126,7 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
     int max_r = 0;
     double max_mi = 0;
     QPoint maxp;
-    for(int r = 10; r < 90; r++)
+    for(int r = 15; r < 90; r++)
     {
         double scale = r/100.;
         QImage ballmask = mask.scaled(mask.width()*scale, mask.height()*scale);
@@ -134,16 +134,25 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
         int mh = ballmask.height();
         //std::cout << "mw,mh = " << mw << "," << mh << std::endl;
         currentimg = cv::imread(img_list[img_index].filePath().toStdString());
-        QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_ARGB32);
-        double mi = calc_mi(img, ballmask, mx-r, my-r);
-        //std::cout << mi << std::endl;
-        if(max_mi < mi)
-        {
-            max_mi = mi;
-            max_r = r;
-            //In max mi x1,y1,x2,y2
-            //std::cout << "(x1 , y1)" << "(" << *out_x1 << "," << *out_y1 << ")" <<  "(x2 , y2)" << "(" << *out_x2 << "," << *out_y2 << ")" << std::endl;
-        }
+        QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_RGB888);
+		int size = 10;
+        for(int x=mx-size; x < mx+size; x++)
+		{
+			if( x >= currentimg.cols )continue;
+			for(int y=my-size; y < my+size; y++)
+			{
+				if( y >= currentimg.rows )continue;
+				double mi = calc_mi(img, ballmask, x-r, y-r);
+				//std::cout << mi << std::endl;
+				if(max_mi < mi)
+				{
+					max_mi = mi;
+					max_r = r;
+					//In max mi x1,y1,x2,y2
+					//std::cout << "(x1 , y1)" << "(" << *out_x1 << "," << *out_y1 << ")" <<  "(x2 , y2)" << "(" << *out_x2 << "," << *out_y2 << ")" << std::endl;
+				}
+			}
+		}
     }
     int offset = viewoffset;
     *out_x1 = (int)((double)(mx - max_r)/currentimg.cols * scene_img_w)+offset;
