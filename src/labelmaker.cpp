@@ -131,7 +131,7 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
 	int r_max = 90 * ((double)my / img.height());
 	r_min = (r_min > 10)?r_min:10;
 	r_max = (r_max > 20)?r_max:20;
-	qDebug() << "min" << r_min << " max" << r_max;
+	//qDebug() << "min" << r_min << " max" << r_max;
     for(int r = r_min; r < r_max; r++)
     {
         double scale = r/100.;
