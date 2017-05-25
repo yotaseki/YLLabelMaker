@@ -65,22 +65,25 @@ void LabelMaker::onMouseMovedGraphicsView(int x, int y, Qt::MouseButton b)
 
 void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
 {
-    if(b == Qt::LeftButton)
-    {
-        correctCoordiante(mx,my);
-        c_rect.x = mx;
-        c_rect.y = my;
-        c_rect.b = b;
-        c_rect.flag = 1;
-        updateView();
-    }
-    if(b == Qt::RightButton)
-    {
-        if(bboxes.size() > 0)
-        {
-            bboxes.pop_back();
-        }
-    }
+	if(b == Qt::LeftButton)
+	{
+		if(ui->checkUseMI->checkState() != Qt::Checked)
+		{
+			correctCoordiante(mx,my);
+			c_rect.x = mx;
+			c_rect.y = my;
+			c_rect.b = b;
+			c_rect.flag = 1;
+			updateView();
+		}
+	}
+	if(b == Qt::RightButton)
+	{
+		if(bboxes.size() > 0)
+		{
+			bboxes.pop_back();
+		}
+	}
 }
 
 void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
@@ -123,6 +126,8 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
     //std::cout << "(x , y)" << mx << "," << my << std::endl;
 	convertAxsisGraphics2CurrentImage(mx, my, &mx,&my);
     QImage mask = CreateMask();
+	int max_x = 0;
+	int max_y = 0;
     int max_r = 0;
     double max_mi = 0;
     QPoint maxp;
@@ -131,7 +136,6 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
 	int r_max = 90 * ((double)my / img.height());
 	r_min = (r_min > 10)?r_min:10;
 	r_max = (r_max > 20)?r_max:20;
-	//qDebug() << "min" << r_min << " max" << r_max;
     for(int r = r_min; r < r_max; r++)
     {
         double scale = r/100.;
@@ -143,16 +147,20 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
 		int step = 2;
         for(int x=mx-size; x < mx+size; x+=step)
 		{
-			if( x >= currentimg.cols )continue;
+			if(((currentimg.cols - mw) <= x) || (x <= r)) continue;
 			for(int y=my-size; y < my+size; y+=step)
 			{
-				if( y >= currentimg.rows )continue;
+				if(((currentimg.rows - mh) <= y) || (y <= r) )continue;
+				//qDebug() << "r:" << r << QString("(x,y) = (%1,%2)").arg(x).arg(y);
 				double mi = calc_mi(img, ballmask, x-r, y-r);
 				//std::cout << mi << std::endl;
 				if(max_mi < mi)
 				{
+					max_x = mx;
+					max_y = my;
 					max_mi = mi;
 					max_r = r;
+					//qDebug() << QString("(x,y) = (%1,%2) : (mx,my) = (%3,%4) : r(%5)").arg(x).arg(y).arg(mx).arg(my).arg(r);
 					//In max mi x1,y1,x2,y2
 					//std::cout << "(x1 , y1)" << "(" << *out_x1 << "," << *out_y1 << ")" <<  "(x2 , y2)" << "(" << *out_x2 << "," << *out_y2 << ")" << std::endl;
 				}
@@ -160,10 +168,10 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
 		}
     }
     int offset = viewoffset;
-    *out_x1 = (int)((double)(mx - max_r)/currentimg.cols * scene_img_w)+offset;
-    *out_y1 = (int)((double)(my - max_r)/currentimg.rows * scene_img_h)+offset;
-    *out_x2 = (int)((double)(mx + max_r)/currentimg.cols * scene_img_w)+offset;
-    *out_y2 = (int)((double)(my + max_r)/currentimg.rows * scene_img_h)+offset;
+    *out_x1 = (int)((double)(max_x - max_r)/currentimg.cols * scene_img_w)+offset;
+    *out_y1 = (int)((double)(max_y - max_r)/currentimg.rows * scene_img_h)+offset;
+    *out_x2 = (int)((double)(max_x + max_r)/currentimg.cols * scene_img_w)+offset;
+    *out_y2 = (int)((double)(max_y + max_r)/currentimg.rows * scene_img_h)+offset;
 }
 double LabelMaker::calc_mi( const QImage &img, const QImage &maskimg, int x0, int y0 )
 {
@@ -181,9 +189,10 @@ double LabelMaker::calc_mi( const QImage &img, const QImage &maskimg, int x0, in
     int maskbpl = maskimg.bytesPerLine();
     int mh = maskimg.height();
     int mw = maskimg.width();
-    for(int i=0; i<mh; i++) {
-        for(int j=0; j<mw; j++) { 
-            //int gray = qGray(img.pixel(j+x0, i+y0));
+	for(int i=0; i<mh; i++) {
+        for(int j=0; j<mw; j++) {
+			// qDebug() << QString("(mw,mh) = (%1,%2) ; (j,i) = (%3,%4)").arg(mw).arg(mh).arg(j).arg(i);
+            // int gray = qGray(img.pixel(j+x0, i+y0));
             int gray = imdata[(j+x0) * 3 + (i+y0) * bpl];
             int mask = maskdata[j*3 + i*maskbpl];
             if (mask) {
