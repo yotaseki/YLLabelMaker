@@ -126,20 +126,25 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
     int max_r = 0;
     double max_mi = 0;
     QPoint maxp;
-    for(int r = 15; r < 90; r++)
+	QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_RGB888);
+	int r_min = 15 * ((double)my / img.height());
+	int r_max = 90 * ((double)my / img.height());
+	r_min = (r_min > 10)?r_min:10;
+	r_max = (r_max > 20)?r_max:20;
+	qDebug() << "min" << r_min << " max" << r_max;
+    for(int r = r_min; r < r_max; r++)
     {
         double scale = r/100.;
         QImage ballmask = mask.scaled(mask.width()*scale, mask.height()*scale);
         int mw = ballmask.width();
         int mh = ballmask.height();
         //std::cout << "mw,mh = " << mw << "," << mh << std::endl;
-        currentimg = cv::imread(img_list[img_index].filePath().toStdString());
-        QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_RGB888);
 		int size = 10;
-        for(int x=mx-size; x < mx+size; x++)
+		int step = 2;
+        for(int x=mx-size; x < mx+size; x+=step)
 		{
 			if( x >= currentimg.cols )continue;
-			for(int y=my-size; y < my+size; y++)
+			for(int y=my-size; y < my+size; y+=step)
 			{
 				if( y >= currentimg.rows )continue;
 				double mi = calc_mi(img, ballmask, x-r, y-r);
