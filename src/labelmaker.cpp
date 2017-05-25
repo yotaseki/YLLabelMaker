@@ -127,7 +127,7 @@ void LabelMaker::searchBboxByMI(int mx, int my, int *out_x1, int *out_y1, int *o
     double max_mi = 0;
     QPoint maxp;
 	QImage img = QImage(currentimg.data, currentimg.cols,currentimg.rows, QImage::Format_RGB888);
-	int r_min = 15 * ((double)my / img.height());
+	int r_min = 30 * ((double)my / img.height());
 	int r_max = 90 * ((double)my / img.height());
 	r_min = (r_min > 10)?r_min:10;
 	r_max = (r_max > 20)?r_max:20;
