@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <MyQclass.h>
 #include <ui_dirdialog.h>
+#include <QEvent>
 
 namespace Ui {
 class LabelMaker;
@@ -53,6 +54,7 @@ private slots:
     void destroyDirDialog();
     void onPushPlus();
     void onPushMinus();
+	void textChangedLinePage();
 
 private:
     int img_index;
@@ -86,6 +88,8 @@ private:
     double calc_mi(const QImage &img, const QImage &maskimg, int x0, int y0);
     QImage CreateMask();
     QFileInfoList makeImageList(QString path);
+protected:
+	bool eventFilter(QObject *widget, QEvent *event);
 };
 
 #endif // LABELMAKER_H

@@ -17,7 +17,8 @@ LabelMaker::LabelMaker(QWidget *parent) :
     connectSignals();
     ui->graphicsView->setScene(&scene);
     readKey();
-    dialog.show();
+	dialog.show();
+	installEventFilter(this);
 }
 
 void LabelMaker::readKey()
@@ -295,6 +296,19 @@ void LabelMaker::onPushMinus()
     ui->spinLabelNumber->setValue(ui->spinLabelNumber->value()-1);
 }
 
+void LabelMaker::textChangedLinePage()
+{
+	bool ok;
+	int page = ui->linePage->text().toInt(&ok, 10) -1;
+	if(ok)
+	{
+		if(0 <= page && page < img_list.size())
+		{
+			changeIndex(page - img_index);
+		}
+	}
+}
+
 void LabelMaker::connectSignals()
 {
     bool ret;
@@ -324,6 +338,8 @@ void LabelMaker::connectSignals()
     assert(ret);
     ret = connect(ui->pushMinus,SIGNAL(clicked()),this,SLOT(onPushMinus()));
     assert(ret);
+	ret = connect(ui->linePage,SIGNAL(editingFinished()),this,SLOT(textChangedLinePage()));
+    assert(ret);
 
 }
 
@@ -347,11 +363,9 @@ int LabelMaker::updateView()
     {
         drawRect();
     }
-    ui->labelFilename->setText(QString("%1 (%2/%3)")
-                               .arg(img_list[img_index].fileName())
-                               .arg(img_index+1)
-                               .arg(img_list.size())
-                               );
+    ui->labelFilename->setText(img_list[img_index].fileName());
+	ui->linePage->setText(QString("%1").arg(img_index+1));
+    ui->linePageNum->setText(QString("%1").arg(img_list.size()));
     ui->labelDebug->clear();
 	ui->labelDebug->setText(
             QString("NUM_BBOX[%1]").arg(bboxes.size())
@@ -548,4 +562,22 @@ void LabelMaker::changeIndex(int num)
     readText();
     loadImage();
     updateView();
+}
+
+bool LabelMaker::eventFilter(QObject *obj, QEvent *eve)
+{
+	QKeyEvent *key;
+	if(eve->type() == QEvent::KeyRelease)
+	{
+		key = static_cast<QKeyEvent*>(eve);
+		if(key->key()==0x1000014 || key->text()=="d")
+		{
+			onPushNext();
+		}
+		if(key->key()==0x1000012 || key->text()=="a")
+		{
+			onPushBack();
+		}
+		return true;
+	}
 }
