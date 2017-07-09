@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <MyQclass.h>
 #include <ui_dirdialog.h>
+#include <QEvent>
 
 namespace Ui {
 class LabelMaker;
@@ -53,6 +54,7 @@ private slots:
     void destroyDirDialog();
     void onPushPlus();
     void onPushMinus();
+	void textChangedLinePage();
 
 private:
     int img_index;
@@ -82,6 +84,8 @@ private:
     void appendBbox(int label,int x1, int y1, int x2, int y2);
     void changeIndex(int num);
     QFileInfoList makeImageList(QString path);
+protected:
+	bool eventFilter(QObject *widget, QEvent *event);
 };
 
 #endif // LABELMAKER_H
