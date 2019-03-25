@@ -40,6 +40,7 @@ public:
         float h;
     };
     std::vector<Bbox> bboxes;
+    Bbox latestBox;
 
 private slots:
     void onMouseMovedGraphicsView(int x,int y,Qt::MouseButton b);
@@ -55,6 +56,7 @@ private slots:
     void onPushPlus();
     void onPushMinus();
 	void textChangedLinePage();
+    void onSpinRangeValueChanged();
 
 private:
     int img_index;
@@ -80,6 +82,7 @@ private:
     void readKey();
     void saveKey();
     void writeText();
+    void writeMultiText();
     void readText();
     void appendBbox(int label,int x1, int y1, int x2, int y2);
     void changeIndex(int num);

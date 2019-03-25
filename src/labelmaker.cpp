@@ -101,7 +101,16 @@ void LabelMaker::onMouseReleasedGraphicsView(int mx, int my, Qt::MouseButton b)
                 searchBboxByMI(mx,my, &r_x1, &r_y1, &r_x2, &r_y2);
                 appendBbox(0, r_x1, r_y1, r_x2, r_y2);
             }
-            else appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
+            else 
+            {
+                appendBbox(ui->spinLabelNumber->value(),c_rect.x,c_rect.y,c_view.x,c_view.y);
+                if(ui->checkRange->checkState() == Qt::Checked)
+                {
+                    writeMultiText();
+                    changeIndex(0);
+                    ui->checkRange->setCheckState(Qt::Unchecked);
+                }
+            }
         }
         c_rect.flag = 0;
         updateView();
@@ -263,15 +272,21 @@ void LabelMaker::onPushChooseDirectory()
 void LabelMaker::onPushChooseImagesDir()
 {
     img_index = 0;
+    dialog.setWindowFlags(Qt::WindowStaysOnBottomHint);
     QDir dir = myq.selectDir(QDir(d_ui->lineImageDir->text()));
     d_ui->lineImageDir->setText(dir.path());
     d_ui->lineSaveTo->setText(dir.path()+"_labels");
+    dialog.setWindowFlags(Qt::WindowStaysOnTopHint);
+    dialog.show();
 }
 
 void LabelMaker::onPushChooseSaveTo()
 {
+    dialog.setWindowFlags(Qt::WindowStaysOnBottomHint);
     QDir dir = myq.selectDir(QDir(d_ui->lineImageDir->text()));
     d_ui->lineSaveTo->setText(dir.path());
+    dialog.setWindowFlags(Qt::WindowStaysOnTopHint);
+    dialog.show();
 }
 
 void LabelMaker::destroyDirDialog()
@@ -283,6 +298,8 @@ void LabelMaker::destroyDirDialog()
         loadImage();
         readText();
         updateView();
+        ui->spinRangeMin->setMaximum(img_list.size()-1);
+        ui->spinRangeMax->setMaximum(img_list.size());
     }
 }
 
@@ -307,6 +324,14 @@ void LabelMaker::textChangedLinePage()
 			changeIndex(page - img_index);
 		}
 	}
+}
+
+void LabelMaker::onSpinRangeValueChanged()
+{
+    if(ui->spinRangeMin->value() >= ui->spinRangeMax->value())
+    {
+        ui->spinRangeMax->setValue(ui->spinRangeMin->value() + 1);
+    }
 }
 
 void LabelMaker::connectSignals()
@@ -339,6 +364,8 @@ void LabelMaker::connectSignals()
     ret = connect(ui->pushMinus,SIGNAL(clicked()),this,SLOT(onPushMinus()));
     assert(ret);
 	ret = connect(ui->linePage,SIGNAL(editingFinished()),this,SLOT(textChangedLinePage()));
+    assert(ret);
+    ret = connect(ui->spinRangeMin,SIGNAL(valueChanged(int)),this,SLOT(onSpinRangeValueChanged()));
     assert(ret);
 
 }
@@ -468,16 +495,16 @@ QFileInfoList LabelMaker::makeImageList(QString path)
 
 void LabelMaker::writeText()
 {
+    QString save_dir = d_ui->lineSaveTo->text();
+    QDir dir(save_dir);
+    QString fn = QString(dir.path()+"/"+img_list[img_index].fileName());
+    fn.chop(4);
+    fn = fn + ".txt";
+    if (!dir.exists()){
+        dir.mkpath(save_dir);
+    }
     if(bboxes.size() > 0)
     {
-        QString save_dir = d_ui->lineSaveTo->text();
-        QDir dir(save_dir);
-        QString fn = QString(dir.path()+"/"+img_list[img_index].fileName());
-        fn.chop(4);
-        fn = fn + ".txt";
-        if (!dir.exists()){
-            dir.mkpath(save_dir);
-        }
         ofstream ofs;
         ofs.open(fn.toLocal8Bit());
         for(int i=0;i<bboxes.size();i++)
@@ -487,7 +514,38 @@ void LabelMaker::writeText()
         }
         ofs.close();
     }
+    else
+    {
+        QDir qd;
+        qd.remove(fn);
+    }
     bboxes.clear();
+}
+
+void LabelMaker::writeMultiText()
+{
+    if(bboxes.size() > 0)
+    {
+        for(int i=ui->spinRangeMin->value()-1;i<ui->spinRangeMax->value();i++)
+        {
+            if(i==img_index){
+                continue;
+            }
+            QString save_dir = d_ui->lineSaveTo->text();
+            QDir dir(save_dir);
+            QString fn = QString(dir.path()+"/"+img_list[i].fileName());
+            fn.chop(4);
+            fn = fn + ".txt";
+            if (!dir.exists()){
+                dir.mkpath(save_dir);
+            }
+            ofstream ofs;
+            ofs.open(fn.toLocal8Bit(), std::ios_base::app);
+            QString line = QString("%1 %2 %3 %4 %5").arg(latestBox.label).arg(latestBox.x).arg(latestBox.y).arg(latestBox.w).arg(latestBox.h);
+            ofs << line.toStdString() << std::endl;
+            ofs.close();
+        }
+    }
 }
 
 void LabelMaker::readText()
@@ -506,6 +564,7 @@ void LabelMaker::readText()
         ifs.open(fn.toLocal8Bit());
         string l;
         while(getline(ifs,l))lines.push_back(l);
+        ifs.close();
     }
     for(int i=0;i<lines.size();i++)
     {
@@ -530,20 +589,19 @@ void LabelMaker::appendBbox(int label, int x1, int y1, int x2, int y2)
 	y2 -= offset;
     int width = scene_img_w;
     int height = scene_img_h;
-    Bbox bbox;
     int x = (x1+x2)/2;
     int y = (y1+y2)/2;
     int w = abs(x1 - x2);
     int h = abs(y1 - y2);
-    bbox.label = label;
-    bbox.x = (float)x/width;
-    bbox.y = (float)y/height;
-    bbox.w = (float)w/width;
-    bbox.h = (float)h/height;
-    //qDebug() << QString("x:%1 ,y:%2 ,w:%3 ,h:%4").a(abs(c_rect.y - c_view.y))rg(bbox.x).arg(bbox.y).arg(bbox.w).arg(bbox.h);
+    latestBox.label = label;
+    latestBox.x = (float)x/width;
+    latestBox.y = (float)y/height;
+    latestBox.w = (float)w/width;
+    latestBox.h = (float)h/height;
+    //qDebug() << QString("x:%1 ,y:%2 ,w:%3 ,h:%4").arg(latestBox.x).arg(latestBox.y).arg(latestBox.w).arg(latestBox.h);
     if((x&&y) && (w&&h))
     {
-        bboxes.push_back(bbox);
+        bboxes.push_back(latestBox);
     }
 }
 
