@@ -82,7 +82,20 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
 	{
 		if(bboxes.size() > 0)
 		{
-			bboxes.pop_back();
+            auto itr = bboxes.begin();
+            while(itr != bboxes.end())
+            {
+                Bbox *b = &(*itr);
+                if( isPixelInBbox(mx,my,b) == true )
+                {
+                    itr = bboxes.erase(itr);
+                }
+                else
+                {
+                    itr++;
+                }
+            }
+			updateView();
 		}
 	}
 }
@@ -638,4 +651,26 @@ bool LabelMaker::eventFilter(QObject *obj, QEvent *eve)
 		}
 		return true;
 	}
+}
+
+bool LabelMaker::isPixelInBbox(int x,int y,Bbox *box)
+{
+    int width = scene_img_w;
+    int height = scene_img_h;
+    int left   = (box->x - box->w/2) * width + viewoffset;
+    int top    = (box->y - box->h/2) * height + viewoffset;
+    int right  = (box->x + box->w/2) * width + viewoffset;
+    int bottom = (box->y + box->h/2) * height + viewoffset;
+    //qDebug() << "l:" << left << "t:"<<top << "r:"<<right << "b:"<<bottom;
+    //qDebug() << "x:" << x << "y:" << y;
+    bool ret = true;
+    if(x<left || right<x)
+    {
+        ret = false;
+    }
+    if(y<top || bottom<y)
+    {
+        ret = false;
+    }
+    return ret;
 }

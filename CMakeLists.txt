@@ -1,5 +1,6 @@
 project(LabelMaker)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(OpenCV)
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTMAIN true)

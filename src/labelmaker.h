@@ -91,6 +91,7 @@ private:
     double calc_mi(const QImage &img, const QImage &maskimg, int x0, int y0);
     QImage CreateMask();
     QFileInfoList makeImageList(QString path);
+    bool isPixelInBbox(int x,int y,Bbox *box);
 protected:
 	bool eventFilter(QObject *widget, QEvent *event);
 };
