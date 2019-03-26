@@ -89,6 +89,7 @@ void LabelMaker::onMousePressedGraphicsView(int mx, int my, Qt::MouseButton b)
                 if( isPixelInBbox(mx,my,b) == true )
                 {
                     itr = bboxes.erase(itr);
+                    break;
                 }
                 else
                 {
