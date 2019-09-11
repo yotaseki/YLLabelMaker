@@ -4,6 +4,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(OpenCV)
 
 if(OpenCV_VERSION VERSION_LESS "4.0")
+else()
     add_definitions(-DCV4)
 endif(OpenCV_VERSION VERSION_LESS)
 find_package(Qt4 REQUIRED)
