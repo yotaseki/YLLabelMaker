@@ -68,7 +68,12 @@ QFileInfoList MyQclass::scanFiles(QString targetpath ,QString filter)
 
 QPixmap MyQclass::MatBGR2pixmap(cv::Mat src)
 {
-    cv::cvtColor(src, src,CV_BGR2BGRA);
+    if(CV_MAJOR_VERSION == 4){
+        cv::cvtColor(src, src,cv::COLOR_BGR2BGRA);
+    }
+    else{
+        cv::cvtColor(src, src,CV_BGR2BGRA);
+    }
     QPixmap pixmap = QPixmap::fromImage(QImage(src.data, src.cols, src.rows, QImage::Format_ARGB32));
     return pixmap;
 }
